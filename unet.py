@@ -1,5 +1,7 @@
-from unet_blocks import *
-import torch.nn.functional as F
+from torch import nn
+
+from unet_blocks import DownConvBlock, UpConvBlock
+
 
 class Unet(nn.Module):
     """
@@ -11,8 +13,9 @@ class Unet(nn.Module):
     padidng: Boolean, if true we pad the images with 1 so that we keep the same dimensions
     """
 
-    def __init__(self, input_channels, num_classes, num_filters, initializers, apply_last_layer=True, padding=True):
-        super(Unet, self).__init__()
+    def __init__(self, input_channels, num_classes, num_filters, initializers,
+                 apply_last_layer=True, padding=True):
+        super().__init__()
         self.input_channels = input_channels
         self.num_classes = num_classes
         self.num_filters = num_filters
@@ -22,29 +25,30 @@ class Unet(nn.Module):
         self.contracting_path = nn.ModuleList()
 
         for i in range(len(self.num_filters)):
-            input = self.input_channels if i == 0 else output
-            output = self.num_filters[i]
+            input_t = self.input_channels if i == 0 else output_t
+            output_t = self.num_filters[i]
 
             if i == 0:
                 pool = False
             else:
                 pool = True
 
-            self.contracting_path.append(DownConvBlock(input, output, initializers, padding, pool=pool))
+            self.contracting_path.append(DownConvBlock(
+                input_t, output_t, initializers, padding, pool=pool))
 
         self.upsampling_path = nn.ModuleList()
 
         n = len(self.num_filters) - 2
         for i in range(n, -1, -1):
-            input = output + self.num_filters[i]
-            output = self.num_filters[i]
-            self.upsampling_path.append(UpConvBlock(input, output, initializers, padding))
+            input_t = output_t + self.num_filters[i]
+            output_t = self.num_filters[i]
+            self.upsampling_path.append(UpConvBlock(
+                input_t, output_t, initializers, padding))
 
         if self.apply_last_layer:
-            self.last_layer = nn.Conv2d(output, num_classes, kernel_size=1)
+            self.last_layer = nn.Conv2d(output_t, num_classes, kernel_size=1)
             #nn.init.kaiming_normal_(self.last_layer.weight, mode='fan_in',nonlinearity='relu')
-            #nn.init.normal_(self.last_layer.bias)
-
+            # nn.init.normal_(self.last_layer.bias)
 
     def forward(self, x, val):
         blocks = []
@@ -58,11 +62,11 @@ class Unet(nn.Module):
 
         del blocks
 
-        #Used for saving the activations and plotting
+        # Used for saving the activations and plotting
         if val:
             self.activation_maps.append(x)
-        
+
         if self.apply_last_layer:
-            x =  self.last_layer(x)
+            x = self.last_layer(x)
 
         return x

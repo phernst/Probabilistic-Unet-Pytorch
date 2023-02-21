@@ -1,10 +1,11 @@
+import os
+import pickle
+import random
+
+import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
-from torch.utils.data import DataLoader
-import numpy as np
-import os
-import random
-import pickle
+
 
 class LIDC_IDRI(Dataset):
     images = []
@@ -12,6 +13,7 @@ class LIDC_IDRI(Dataset):
     series_uid = []
 
     def __init__(self, dataset_location, transform=None):
+        super().__init__()
         self.transform = transform
         max_bytes = 2**31 - 1
         data = {}
@@ -27,13 +29,13 @@ class LIDC_IDRI(Dataset):
                         bytes_in += f_in.read(max_bytes)
                 new_data = pickle.loads(bytes_in)
                 data.update(new_data)
-        
-        for key, value in data.items():
+
+        for _, value in data.items():
             self.images.append(value['image'].astype(float))
             self.labels.append(value['masks'])
             self.series_uid.append(value['series_uid'])
 
-        assert (len(self.images) == len(self.labels) == len(self.series_uid))
+        assert len(self.images) == len(self.labels) == len(self.series_uid)
 
         for img in self.images:
             assert np.max(img) <= 1 and np.min(img) >= 0
@@ -46,8 +48,8 @@ class LIDC_IDRI(Dataset):
     def __getitem__(self, index):
         image = np.expand_dims(self.images[index], axis=0)
 
-        #Randomly select one of the four labels for this image
-        label = self.labels[index][random.randint(0,3)].astype(float)
+        # Randomly select one of the four labels for this image
+        label = self.labels[index][random.randint(0, 3)].astype(float)
         if self.transform is not None:
             image = self.transform(image)
 
@@ -57,7 +59,7 @@ class LIDC_IDRI(Dataset):
         image = torch.from_numpy(image)
         label = torch.from_numpy(label)
 
-        #Convert uint8 to float tensors
+        # Convert uint8 to float tensors
         image = image.type(torch.FloatTensor)
         label = label.type(torch.FloatTensor)
 
