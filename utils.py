@@ -12,7 +12,7 @@ def truncated_normal_(tensor, mean=0, std=1):
 
 
 def init_weights(m):
-    if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
+    if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d, nn.Conv3d, nn.ConvTranspose3d)):
         nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
         #nn.init.normal_(m.weight, std=0.001)
         #nn.init.normal_(m.bias, std=0.001)
@@ -20,7 +20,7 @@ def init_weights(m):
 
 
 def init_weights_orthogonal_normal(m):
-    if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
+    if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d, nn.Conv3d, nn.ConvTranspose3d)):
         nn.init.orthogonal_(m.weight)
         truncated_normal_(m.bias, mean=0, std=0.001)
         #nn.init.normal_(m.bias, std=0.001)
