@@ -330,4 +330,4 @@ class ProbabilisticUnet(nn.Module):
         self.reconstruction_loss = torch.sum(reconstruction_loss)
         self.mean_reconstruction_loss = torch.mean(reconstruction_loss)
 
-        return -(self.reconstruction_loss + self.beta * self.kl_div)
+        return -(self.mean_reconstruction_loss + self.beta * self.kl_div)

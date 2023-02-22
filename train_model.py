@@ -34,21 +34,21 @@ def main():
           (len(train_indices), len(val_indices)))
 
     net = ProbabilisticUnet(input_channels=1, num_classes=2, num_filters=[
-                            32, 64, 128, 192], latent_dim=6, no_convs_fcomb=4, beta=10.0)
+                            32, 64, 128, 192], latent_dim=6, no_convs_fcomb=4, beta=1e-2)
     net.to(device)
-    optimizer = torch.optim.Adam(net.parameters(), lr=1e-5, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(net.parameters(), lr=1e-4, weight_decay=1e-5)
     epochs = 10
     for _ in tqdm(range(epochs)):
         for _, (patch, mask, _) in enumerate(tqdm(train_loader)):
             patch = patch.to(device)
             mask = mask.to(device)
-            print(patch.shape, mask.shape)
             net.forward(patch, mask, training=True)
             elbo = net.elbo(mask)
             reg_loss = l2_regularisation(
                 net.posterior) + l2_regularisation(net.prior) + l2_regularisation(net.fcomb.layers)
             loss = -elbo + 1e-5 * reg_loss
             print(f'{patch.shape=}, {mask.shape=}, {elbo=}, {loss=}')
+            print(f'{net.mean_reconstruction_loss=}, {net.kl_div=}')
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
