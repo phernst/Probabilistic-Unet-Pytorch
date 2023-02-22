@@ -19,7 +19,7 @@ class Encoder(nn.Module):
     after each convolutional layer a non-linear (ReLU) activation function is applied.
     """
 
-    def __init__(self, input_channels, num_filters, no_convs_per_block, _initializers, padding=True,
+    def __init__(self, input_channels, num_classes, num_filters, no_convs_per_block, _initializers, padding=True,
                  posterior=False):
         super().__init__()
         self.contracting_path = nn.ModuleList()
@@ -29,7 +29,7 @@ class Encoder(nn.Module):
         if posterior:
             # To accomodate for the mask that is concatenated at the channel axis, we increase
             # the input_channels.
-            self.input_channels += 1
+            self.input_channels += num_classes
 
         layers = []
         for i in range(len(self.num_filters)):
@@ -66,10 +66,11 @@ class AxisAlignedConvGaussian(nn.Module):
     matrix.
     """
 
-    def __init__(self, input_channels, num_filters, no_convs_per_block, latent_dim, initializers,
-                 posterior=False):
+    def __init__(self, input_channels, num_classes, num_filters, no_convs_per_block, latent_dim,
+                 initializers, posterior=False):
         super().__init__()
         self.input_channels = input_channels
+        self.num_classes = num_classes
         self.channel_axis = 1
         self.num_filters = num_filters
         self.no_convs_per_block = no_convs_per_block
@@ -79,7 +80,7 @@ class AxisAlignedConvGaussian(nn.Module):
             self.name = 'Posterior'
         else:
             self.name = 'Prior'
-        self.encoder = Encoder(self.input_channels, self.num_filters,
+        self.encoder = Encoder(self.input_channels, self.num_classes, self.num_filters,
                                self.no_convs_per_block, initializers, posterior=self.posterior)
         self.conv_layer = nn.Conv2d(
             num_filters[-1], 2 * self.latent_dim, (1, 1), stride=1)
@@ -231,11 +232,11 @@ class ProbabilisticUnet(nn.Module):
         self.unet = Unet(self.input_channels, self.num_classes, self.num_filters,
                          self.initializers, apply_last_layer=False, padding=True).to(device)
         self.prior = AxisAlignedConvGaussian(
-            self.input_channels, self.num_filters, self.no_convs_per_block, self.latent_dim,
-            self.initializers,).to(device)
+            self.input_channels, self.num_classes, self.num_filters, self.no_convs_per_block,
+            self.latent_dim, self.initializers,).to(device)
         self.posterior = AxisAlignedConvGaussian(
-            self.input_channels, self.num_filters, self.no_convs_per_block, self.latent_dim,
-            self.initializers, posterior=True).to(device)
+            self.input_channels, self.num_classes, self.num_filters, self.no_convs_per_block,
+            self.latent_dim, self.initializers, posterior=True).to(device)
         self.fcomb = Fcomb(self.num_filters, self.latent_dim, self.input_channels, self.num_classes,
                            self.no_convs_fcomb, {
                                'w': 'orthogonal', 'b': 'normal'},

@@ -19,7 +19,7 @@ def calculate_iou(predictions: torch.Tensor, masks: torch.Tensor) -> torch.Tenso
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    dataset = LIDC_IDRI(dataset_location='data/')
+    dataset = LIDC_IDRI(dataset_location='data/', num_classes=2)
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(0.1 * dataset_size))
@@ -33,7 +33,7 @@ def main():
     print("Number of training/test patches:",
           (len(train_indices), len(val_indices)))
 
-    net = ProbabilisticUnet(input_channels=1, num_classes=1, num_filters=[
+    net = ProbabilisticUnet(input_channels=1, num_classes=2, num_filters=[
                             32, 64, 128, 192], latent_dim=6, no_convs_fcomb=4, beta=10.0)
     net.to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-5, weight_decay=1e-5)
@@ -42,7 +42,7 @@ def main():
         for _, (patch, mask, _) in enumerate(tqdm(train_loader)):
             patch = patch.to(device)
             mask = mask.to(device)
-            mask = torch.unsqueeze(mask, 1)
+            print(patch.shape, mask.shape)
             net.forward(patch, mask, training=True)
             elbo = net.elbo(mask)
             reg_loss = l2_regularisation(

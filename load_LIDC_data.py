@@ -12,8 +12,9 @@ class LIDC_IDRI(Dataset):
     labels = []
     series_uid = []
 
-    def __init__(self, dataset_location, transform=None):
+    def __init__(self, dataset_location: str, num_classes: int, transform=None):
         super().__init__()
+        self.num_classes = num_classes
         self.transform = transform
         max_bytes = 2**31 - 1
         data = {}
@@ -57,7 +58,8 @@ class LIDC_IDRI(Dataset):
 
         # Convert image and label to torch tensors
         image = torch.from_numpy(image)
-        label = torch.from_numpy(label)
+        label = torch.from_numpy(label)[None].repeat(
+            self.num_classes, *[1]*(label.ndim))
 
         # Convert uint8 to float tensors
         image = image.type(torch.FloatTensor)
